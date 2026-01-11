@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maison Malika | Admin Control Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Montserrat:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Montserrat', sans-serif; background-color: #f8fafc; }
+        .serif { font-family: 'Amiri', serif; }
+        .sidebar { background-color: #0A0A0A; }
+        .nav-link.active { background-color: #C5A059; color: white; }
+        .status-pending { background: #fef3c7; color: #92400e; }
+        .status-shipped { background: #dcfce7; color: #166534; }
+        .status-delivered { background: #f1f5f9; color: #475569; }
+    </style>
+</head>
+<body class="flex min-h-screen">
+
+    <!-- شاشة تسجيل الدخول -->
+    <div id="login-screen" class="fixed inset-0 z-[100] bg-zinc-900 flex items-center justify-center p-6">
+        <div class="bg-white p-12 max-w-md w-full shadow-2xl rounded-xl border border-gold/10">
+            <h1 class="text-4xl serif italic text-center mb-10">Maison Management</h1>
+            <form id="admin-login-form" class="space-y-6">
+                <input type="email" id="admin-email" placeholder="Manager Email" class="w-full border-b border-zinc-200 py-3 outline-none focus:border-gold" required>
+                <input type="password" id="admin-password" placeholder="Password" class="w-full border-b border-zinc-200 py-3 outline-none focus:border-gold" required>
+                <button type="submit" class="w-full bg-black text-white py-4 font-bold tracking-widest hover:bg-zinc-800 transition">LOGIN TO ATELIER</button>
+                <p id="login-error" class="text-red-500 text-[10px] text-center uppercase font-bold hidden">Access Denied</p>
+            </form>
+        </div>
+    </div>
+
+    <!-- القائمة الجانبية -->
+    <aside class="sidebar w-64 text-zinc-400 flex flex-col hidden" id="sidebar">
+        <div class="p-8 border-b border-white/5">
+            <h2 class="text-white serif italic text-2xl tracking-tighter">Maison Malika</h2>
+            <p class="text-[9px] tracking-widest uppercase mt-2 text-zinc-500">Admin Control</p>
+        </div>
+        <nav class="flex-1 p-6 space-y-2 text-sm font-medium">
+            <button onclick="switchTab('categories')" id="tab-categories" class="nav-link w-full text-left p-4 rounded-lg flex items-center gap-4 transition active">
+                <span>Manage Collections</span>
+            </button>
+            <button onclick="switchTab('products')" id="tab-products" class="nav-link w-full text-left p-4 rounded-lg flex items-center gap-4 transition">
+                <span>Manage Products</span>
+            </button>
+            <button onclick="switchTab('orders')" id="tab-orders" class="nav-link w-full text-left p-4 rounded-lg flex items-center gap-4 transition">
+                <span>Customer Orders</span>
+            </button>
+            <button onclick="switchTab('messages')" id="tab-messages" class="nav-link w-full text-left p-4 rounded-lg flex items-center gap-4 transition">
+                <span>Inquiries</span>
+            </button>
+        </nav>
+        <div class="p-6 border-t border-white/5">
+            <button onclick="logout()" class="text-xs uppercase tracking-widest hover:text-white transition">Sign Out</button>
+        </div>
+    </aside>
+
+    <!-- المحتوى الرئيسي -->
+    <main class="flex-1 p-10 hidden overflow-y-auto" id="main-content">
+        <!-- المجموعات -->
+        <section id="view-categories" class="tab-view">
+            <div class="flex justify-between items-end mb-12">
+                <div>
+                    <h1 class="text-5xl serif italic text-zinc-800">Collections</h1>
+                    <p class="text-zinc-400 mt-2">Create and edit main store categories</p>
+                </div>
+                <button onclick="openCategoryModal()" class="bg-[#C5A059] text-white px-8 py-3 rounded-full text-xs font-bold tracking-widest shadow-xl shadow-gold/20">+ NEW COLLECTION</button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="admin-category-grid"></div>
+        </section>
+
+        <!-- المنتجات -->
+        <section id="view-products" class="tab-view hidden">
+            <div class="flex justify-between items-end mb-12">
+                <div>
+                    <h1 class="text-5xl serif italic text-zinc-800">Inventory</h1>
+                    <p class="text-zinc-400 mt-2">Manage bridal gowns and details</p>
+                </div>
+                <button onclick="openProductModal()" class="bg-[#C5A059] text-white px-8 py-3 rounded-full text-xs font-bold tracking-widest shadow-xl shadow-gold/20">+ ADD NEW PIECE</button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="admin-product-grid"></div>
+        </section>
+
+        <!-- الطلبات -->
+        <section id="view-orders" class="tab-view hidden">
+            <h1 class="text-5xl serif italic text-zinc-800 mb-12">Customer Orders</h1>
+            <div class="bg-white border border-zinc-100 shadow-sm overflow-hidden rounded-xl">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-zinc-50 text-[10px] tracking-widest uppercase text-zinc-400 font-bold border-b">
+                            <th class="p-6">Product</th>
+                            <th class="p-6">Customer</th>
+                            <th class="p-6">Address</th>
+                            <th class="p-6">Status</th>
+                            <th class="p-6">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-orders-table"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- الرسائل -->
+        <section id="view-messages" class="tab-view hidden">
+            <h1 class="text-5xl serif italic text-zinc-800 mb-12">Contact Inquiries</h1>
+            <div class="grid grid-cols-1 gap-6" id="admin-messages-grid"></div>
+        </section>
+    </main>
+
+    <!-- Modal: Category -->
+    <div id="category-modal" class="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-6">
+        <div class="bg-white max-w-lg w-full p-12 rounded-2xl">
+            <div class="flex justify-between items-center mb-10">
+                <h2 class="text-3xl serif italic" id="cat-modal-title">New Collection</h2>
+                <button onclick="closeCategoryModal()" class="text-4xl font-light">&times;</button>
+            </div>
+            <form id="category-form" class="space-y-6">
+                <input type="hidden" id="edit-cat-id">
+                <div>
+                    <label class="text-[10px] uppercase font-bold tracking-widest text-zinc-400 mb-2 block">Unique ID (lowercase)</label>
+                    <input type="text" id="cat-id" class="w-full border-b py-2 outline-none focus:border-gold" placeholder="e.g. wedding" required>
+                </div>
+                <div class="grid grid-cols-2 gap-6">
+                    <input type="text" id="cat-name-en" placeholder="Name (EN)" class="w-full border-b py-2 outline-none focus:border-gold" required>
+                    <input type="text" id="cat-name-ar" placeholder="Name (AR)" class="w-full border-b py-2 outline-none focus:border-gold" required>
+                </div>
+                <input type="url" id="cat-banner" placeholder="Banner Image URL" class="w-full border-b py-2 outline-none focus:border-gold" required>
+                <button type="submit" class="w-full bg-black text-white py-5 font-bold tracking-widest rounded-lg">SAVE COLLECTION</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Product -->
+    <div id="product-modal" class="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-6">
+        <div class="bg-white max-w-2xl w-full p-12 rounded-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-10">
+                <h2 class="text-3xl serif italic" id="modal-title">Add New Piece</h2>
+                <button onclick="closeProductModal()" class="text-4xl font-light">&times;</button>
+            </div>
+            <form id="product-form" class="space-y-6">
+                <input type="hidden" id="edit-id">
+                <div class="grid grid-cols-2 gap-6">
+                    <select id="prod-category" class="w-full border-b py-2 bg-transparent outline-none focus:border-gold" required></select>
+                    <input type="number" id="prod-price" placeholder="Price (AED)" class="w-full border-b py-2 outline-none focus:border-gold" required>
+                </div>
+                <input type="text" id="prod-name" placeholder="Product Name" class="w-full border-b py-2 outline-none focus:border-gold" required>
+                <textarea id="prod-desc" placeholder="Fabric / Description" class="w-full border-b py-2 outline-none focus:border-gold h-24" required></textarea>
+                <input type="url" id="prod-img" placeholder="Main Image URL" class="w-full border-b py-2 outline-none focus:border-gold" required>
+                <button type="submit" class="w-full bg-black text-white py-5 font-bold tracking-widest rounded-lg">UPDATE INVENTORY</button>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = { apiKey: "AIzaSyDQLl01E8UXKM4uGgRkVj1RY53jqAs6tyc", authDomain: "malikabridal-79c67.firebaseapp.com", projectId: "malikabridal-79c67", storageBucket: "malikabridal-79c67.firebasestorage.app", messagingSenderId: "117886324990", appId: "1:117886324990:web:fc66c433e289a9a27655af" };
+        const appId = 'malikabridal-79c67';
+        const adminUid = "dPb8eU9AX1d6QkrYc5X9WIgzCJ63"; // معرفكِ الخاص
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let user = null;
+        let categories = [];
+        let unsubscribers = [];
+
+        onAuthStateChanged(auth, (u) => {
+            user = u;
+            unsubscribers.forEach(unsub => unsub());
+            unsubscribers = [];
+
+            if (user && user.uid === adminUid) {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('sidebar').classList.remove('hidden');
+                document.getElementById('main-content').classList.remove('hidden');
+                initDashboard();
+            } else {
+                document.getElementById('login-screen').classList.remove('hidden');
+                document.getElementById('sidebar').classList.add('hidden');
+                document.getElementById('main-content').classList.add('hidden');
+                if (user && user.uid !== adminUid) {
+                    document.getElementById('login-error').innerText = "RESTRICTED ACCESS";
+                    document.getElementById('login-error').classList.remove('hidden');
+                    signOut(auth);
+                }
+            }
+        });
+
+        document.getElementById('admin-login-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('admin-email').value;
+            const pass = document.getElementById('admin-password').value;
+            const errEl = document.getElementById('login-error');
+            errEl.classList.add('hidden');
+            try { 
+                await signInWithEmailAndPassword(auth, email, pass); 
+            } catch (err) { 
+                errEl.innerText = "AUTHENTICATION FAILED";
+                errEl.classList.remove('hidden');
+            }
+        };
+
+        function initDashboard() {
+            // مزامنة المجموعات
+            const catUnsub = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'categories'), (s) => {
+                categories = s.docs.map(d => ({id: d.id, ...d.data()}));
+                renderCategories();
+                updateProductSelect();
+            }, (err) => console.error("Category Sync Error:", err));
+            unsubscribers.push(catUnsub);
+
+            // مزامنة المنتجات
+            const prodUnsub = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'products'), (s) => {
+                const grid = document.getElementById('admin-product-grid'); grid.innerHTML = "";
+                s.docs.forEach(d => {
+                    const p = d.data();
+                    grid.innerHTML += `<div class="bg-white p-6 rounded-xl border border-zinc-100 shadow-sm group">
+                        <img src="${p.img}" class="w-full aspect-[3/4] object-cover rounded-lg mb-6 shadow-md">
+                        <div class="flex justify-between items-start mb-4">
+                            <div><h3 class="serif text-xl">${p.name}</h3><p class="text-[10px] text-gold font-bold uppercase tracking-widest">${p.category}</p></div>
+                            <span class="text-sm font-bold">${p.price} AED</span>
+                        </div>
+                        <div class="flex gap-4 border-t pt-4 mt-4">
+                            <button onclick="editProduct('${d.id}')" class="text-[10px] font-bold text-zinc-400 hover:text-black uppercase underline">Edit</button>
+                            <button onclick="deleteProduct('${d.id}')" class="text-[10px] font-bold text-red-400 hover:text-red-600 uppercase underline">Delete</button>
+                        </div>
+                    </div>`;
+                });
+            }, (err) => console.error("Product Sync Error:", err));
+            unsubscribers.push(prodUnsub);
+
+            // مزامنة الطلبات
+            const orderUnsub = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'admin_orders'), (s) => {
+                const table = document.getElementById('admin-orders-table'); table.innerHTML = "";
+                const orders = s.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b) => b.timestamp - a.timestamp);
+                orders.forEach(o => {
+                    table.innerHTML += `<tr class="border-b hover:bg-zinc-50 transition">
+                        <td class="p-6"><div class="flex items-center gap-4"><img src="${o.img}" class="w-10 h-14 object-cover rounded shadow-sm"><span class="font-bold text-xs">${o.name} x${o.quantity}</span></div></td>
+                        <td class="p-6 text-xs text-zinc-600 font-medium">${o.customer?.firstName} ${o.customer?.lastName}<br>${o.customer?.phone}</td>
+                        <td class="p-6 text-xs text-zinc-400 font-light">${o.customer?.country}</td>
+                        <td class="p-6"><span class="text-[9px] font-bold uppercase px-3 py-1 rounded-full status-${o.status}">${o.status}</span></td>
+                        <td class="p-6"><select onchange="updateOrderStatus('${o.id}', this.value)" class="text-[10px] border p-2 bg-white rounded outline-none focus:border-gold">
+                            <option value="pending" ${o.status==='pending'?'selected':''}>Pending</option>
+                            <option value="shipped" ${o.status==='shipped'?'selected':''}>Shipped</option>
+                            <option value="delivered" ${o.status==='delivered'?'selected':''}>Delivered</option>
+                        </select></td>
+                    </tr>`;
+                });
+            }, (err) => console.error("Order Sync Error:", err));
+            unsubscribers.push(orderUnsub);
+
+            // مزامنة الرسائل
+            const msgUnsub = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'messages'), (s) => {
+                const grid = document.getElementById('admin-messages-grid'); grid.innerHTML = "";
+                s.docs.forEach(d => {
+                    const m = d.data();
+                    grid.innerHTML += `<div class="bg-white p-8 border border-zinc-100 rounded-xl shadow-sm">
+                        <div class="flex justify-between mb-4">
+                            <div><h4 class="font-bold text-sm text-zinc-800">${m.name}</h4><p class="text-xs text-zinc-400">${m.email}</p></div>
+                            <span class="text-[9px] text-zinc-300 font-bold">${new Date(m.timestamp).toLocaleDateString()}</span>
+                        </div>
+                        <p class="text-zinc-600 italic font-light leading-relaxed border-t pt-4">${m.message}</p>
+                    </div>`;
+                });
+            }, (err) => console.error("Message Sync Error:", err));
+            unsubscribers.push(msgUnsub);
+        }
+
+        function renderCategories() {
+            const grid = document.getElementById('admin-category-grid'); grid.innerHTML = "";
+            categories.forEach(c => {
+                // تمت إزالة uppercase من هنا للاحترام الحالة التي يكتبها المستخدم
+                grid.innerHTML += `<div class="bg-white p-6 rounded-xl border border-zinc-100 shadow-sm">
+                    <img src="${c.banner}" class="w-full h-32 object-cover rounded-lg mb-6 grayscale hover:grayscale-0 transition duration-500">
+                    <div class="flex justify-between items-center mb-4">
+                        <div><h3 class="serif text-xl">${c.nameEn}</h3><p class="text-sm font-bold text-gold serif">${c.nameAr}</p></div>
+                        <span class="text-[10px] bg-zinc-100 px-3 py-1 rounded font-bold text-zinc-400">${c.id}</span>
+                    </div>
+                    <div class="flex gap-4 border-t pt-4">
+                        <button onclick="editCategory('${c.id}')" class="text-[10px] font-bold text-zinc-400 hover:text-black uppercase underline">Edit</button>
+                        <button onclick="deleteCategory('${c.id}')" class="text-[10px] font-bold text-red-400 hover:text-red-600 uppercase underline">Delete</button>
+                    </div>
+                </div>`;
+            });
+        }
+
+        function updateProductSelect() {
+            const select = document.getElementById('prod-category');
+            select.innerHTML = categories.map(c => `<option value="${c.id}">${c.nameEn}</option>`).join('');
+        }
+
+        window.switchTab = (tid) => {
+            document.querySelectorAll('.tab-view').forEach(v => v.classList.add('hidden'));
+            document.getElementById('view-' + tid).classList.remove('hidden');
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            document.getElementById('tab-' + tid).classList.add('active');
+        };
+
+        window.openCategoryModal = () => {
+            document.getElementById('category-form').reset();
+            document.getElementById('edit-cat-id').value = "";
+            document.getElementById('cat-id').disabled = false;
+            document.getElementById('cat-modal-title').innerText = "New Collection";
+            document.getElementById('category-modal').classList.remove('hidden');
+        };
+        window.closeCategoryModal = () => document.getElementById('category-modal').classList.add('hidden');
+
+        document.getElementById('category-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const cid = document.getElementById('cat-id').value.trim().toLowerCase().replace(/\s+/g, '');
+            const data = { nameEn: document.getElementById('cat-name-en').value, nameAr: document.getElementById('cat-name-ar').value, banner: document.getElementById('cat-banner').value };
+            try {
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', cid), data);
+                closeCategoryModal();
+            } catch (e) { alert("Permission Error"); }
+        };
+
+        window.editCategory = (id) => {
+            const c = categories.find(cat => cat.id === id);
+            document.getElementById('cat-id').value = c.id;
+            document.getElementById('cat-id').disabled = true;
+            document.getElementById('cat-name-en').value = c.nameEn;
+            document.getElementById('cat-name-ar').value = c.nameAr;
+            document.getElementById('cat-banner').value = c.banner;
+            document.getElementById('cat-modal-title').innerText = "Edit Collection";
+            document.getElementById('category-modal').classList.remove('hidden');
+        };
+
+        window.deleteCategory = async (id) => { if(confirm("Delete collection?")) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', id)); };
+
+        window.openProductModal = () => {
+            document.getElementById('product-form').reset();
+            document.getElementById('edit-id').value = "";
+            document.getElementById('modal-title').innerText = "Add New Piece";
+            document.getElementById('product-modal').classList.remove('hidden');
+        };
+        window.closeProductModal = () => document.getElementById('product-modal').classList.add('hidden');
+
+        document.getElementById('product-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const pid = document.getElementById('edit-id').value;
+            const data = {
+                category: document.getElementById('prod-category').value,
+                price: parseFloat(document.getElementById('prod-price').value),
+                name: document.getElementById('prod-name').value,
+                desc: document.getElementById('prod-desc').value,
+                img: document.getElementById('prod-img').value,
+                gallery: [document.getElementById('prod-img').value],
+                timestamp: Date.now()
+            };
+            try {
+                if (pid) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', pid), data);
+                else await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'products'), data);
+                closeProductModal();
+            } catch (err) { alert("Storage Error"); }
+        };
+
+        window.editProduct = (id) => {
+            const p = doc(db, 'artifacts', appId, 'public', 'data', 'products', id);
+            onSnapshot(p, (d) => {
+                const data = d.data();
+                document.getElementById('edit-id').value = id;
+                document.getElementById('prod-category').value = data.category;
+                document.getElementById('prod-price').value = data.price;
+                document.getElementById('prod-name').value = data.name;
+                document.getElementById('prod-desc').value = data.desc;
+                document.getElementById('prod-img').value = data.img;
+                document.getElementById('modal-title').innerText = "Edit Couture Piece";
+                document.getElementById('product-modal').classList.remove('hidden');
+            });
+        };
+
+        window.deleteProduct = async (id) => { if(confirm("Confirm deletion?")) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', id)); };
+        window.updateOrderStatus = async (id, status) => { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'admin_orders', id), { status }); };
+        window.logout = () => signOut(auth);
+    </script>
+</body>
+</html>
